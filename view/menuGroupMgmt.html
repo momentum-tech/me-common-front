@@ -1,0 +1,252 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" ></meta>
+<link rel="stylesheet" type="text/css" href="../css/tree_menu.css"/>
+<link rel="stylesheet" type="text/css" href="../css/main.css" />
+<link rel="stylesheet" type="text/css" href="../css/toolbar.css" />
+
+<script type="text/javascript" src="http://121.199.38.132/jquery-1.8.3.js"></script>
+<script type="text/javascript" src="../js/common.js"></script>
+<script type="text/javascript" src="../js/jpagelst-0.0.1.js"></script>
+<script type="text/javascript" src="../js/jloading-0.0.1.js"></script>
+<script type="text/javascript" src="../js/jselect.lst-0.0.1.js" charset="utf-8"></script>
+<script type="text/javascript" src="../js/jform-0.0.1.js" charset="utf-8"></script>
+<script type="text/javascript" src="../js/tree_menu.js"></script>
+</head>
+<body>
+<div id="userInfoBlock" class="title_block"></div>
+<img src="http://121.199.38.132/images/main/shadow.png" style="width:100%;height:5px;"/>
+<div style="margin:0 auto;width:95%;font-size:14px;">
+	<div id="treeMenu"  class="menu_tree_block"></div>
+	<div style="width:1px;background:#eeeeee;float:left;margin-top:10px;"></div>
+	
+	<div class="right_block">
+		<div id="rightTitleBlock" class="right_title_block">
+		</div>
+		
+		<div class="tab_bar_1">
+			<label class="label_1">菜单角色:</label>
+			<div id="roleDiv" class="select_lst_text_div"></div>
+			
+			<label class="label_1">菜单组名称:</label>
+			<input type="text" id="queryName" name="queryName" class="form_text"></input>
+			
+			<div class="button_1" onclick="queryEntityInfos()">查询</div>
+			<div class="button_1" onclick="createEntity()">添加</div>
+		</div>
+		<div id="entityInfoLst" class="table_block"></div>
+	</div>
+</div>
+
+<script>
+processUserInfo({level:0, treeNodeId:"menuGroupMgmt"});
+
+var jLoading = new JLoading();
+var roleInput = new JInput({id:"roleDiv", customFunction:function(){jSelectLstDialog.showSelectLst({title:"请选择菜单组所属角色", loadingInfos:queryRoleInfos, caller:"queryRole4Query"})}});
+var jSelectLstDialog = new JSelectLstDialog({id:"jselectLst", btnTxt:"确定"
+		, btnFunction:entitySelected, isSimpleSelect:true});
+
+var tableHeight = document.body.clientHeight - 55 - 52 - 65 - 50;
+var lstInfo = {
+	id : "entityInfoLst",
+	titles: ["菜单组名称", "备注", "菜单序列"],
+	keys: ["name", "comments", "sequence"],
+	functionTitles:["修改菜单组", "删除菜单组", "上移", "下移"],
+	functions:[updateEntity, doDeleteEntity, upwardMenu, downwardMenu],
+	height:tableHeight,
+	loadingFunction:loadEntityInfos
+}
+var jlst = new JPageLst(lstInfo);
+
+function updateEntity(idx) {
+	var record = jlst.getJLstRowInfo(idx);
+	
+	jForm.showForm({
+		inputLst:[{label:"菜单组名称", type:"text", id:"name", value: record.name}
+				, {label:"备注", type:"text", id:"comments", value: record.comments}
+				, {label:"id", type:"hidden", id:"recId", value: record.rec_id}],
+		title : "修改菜单组名称",
+		btnTxt:"修改",
+		btnFunction:doUpdateEntity
+	});
+}
+function doUpdateEntity(data) {
+	var url = getSvrAddress() + "updateMenuGroup.action"
+	
+	$.ajax({
+		type: "POST",
+		data: data,
+		url:url,
+		dataType:"json",
+		success: function(data) {
+			jForm.hideForm();
+			if(data.isSuccess) {
+				queryEntityInfos();
+				alert("修改菜单组成功");
+			} else {
+				alert(data.message);
+			}
+		}
+    });
+}
+
+function doDeleteEntity(idx) {
+	if(confirm("您确定要删除该菜单组吗？")) {
+		var record = jlst.getJLstRowInfo(idx);
+	
+		var url = getSvrAddress() + "deleteMenuGroup.action?"
+		url += "recId=" + record.rec_id;
+		
+		jLoading.showLoading();
+		
+		$.ajax({
+			type: "GET",
+			url:url,
+			dataType:"json",
+			success: function(data) {
+				jLoading.hideLoading();
+				if(data.isSuccess) {
+					queryEntityInfos();
+				} else {
+					alert(data.message);
+				}
+				
+			}
+		});
+	}
+}
+
+
+function queryEntityInfos() {
+	var pageInfo = jlst.getPagInfo();
+	loadEntityInfos(pageInfo.page, pageInfo.rows);
+}
+
+function loadEntityInfos(page, rows) {
+	var data = "page=" + page + "&rows=" + rows;
+	
+	var queryName = $("#queryName").val();
+	if(queryName != "") {
+		data += "&queryName=" + queryName;
+	}
+	data += "&roleId=" + roleInput.getJInputValue();
+	var url = getSvrAddress() + "queryMenuGroupLst.action?" + data;
+	jLoading.showLoading();
+	
+	$.ajax({
+		type: "GET",
+		url:url,
+		dataType:"json",
+		success: function(data) {
+			jLoading.hideLoading();
+			if(data.isSuccess) {
+				jlst.drawJPageLst(data.rtnObj);
+			} else {
+				alert(data.message);
+			}
+		}
+    });
+}
+
+var formData = {
+	id:"createEntityId",
+	formSize:1
+}
+var jForm = new JForm(formData);
+function createEntity() {
+	var createFormInfo = {
+		inputLst:[{label:"菜单组名称", type:"text", id:"name", isNotNull:true}, {label:"备注", type:"text", id:"comments", isNotNull:true}],
+		title : "添加菜单组",
+		btnTxt:"添加",
+		btnFunction:doCreateEntity
+	}
+	
+	jForm.showForm(createFormInfo);
+}
+
+function doCreateEntity(data) {
+	var url = getSvrAddress() + "createMenuGroup.action";
+	$.ajax({
+		type: "POST",
+		url:url,
+		data:data,
+		dataType:"json",
+		success: function(data) {
+			jForm.hideForm();
+			if(data.isSuccess) {
+				alert("新建菜单组成功");
+				queryEntityInfos();
+			} else {
+				alert(data.message);
+			}
+		}
+    });
+}
+
+function upwardMenu(idx) {
+	var roleId = roleInput.getJInputValue();
+	if(roleId) {
+		jLoading.showLoading();
+		var data = "type=UP&menuGroupId=" + jlst.getJLstRowInfo(idx).rec_id + "&roleId=" + roleId;
+		var url = getSvrAddress() + "updateMenuGroupOrder.action?" + data;
+		
+		$.ajax({
+			type: "GET",
+			url:url,
+			dataType:"json",
+			success: function(data) {
+				jLoading.hideLoading();
+				if(data.isSuccess) {
+					queryEntityInfos();
+				} else {
+					alert(data.message);
+				}
+			}
+		});
+	} else {
+		alert("请选择菜单角色才能对菜单组进行排序");
+	}
+}
+function downwardMenu(idx) {
+	var roleId = roleInput.getJInputValue();
+	if(roleId) {
+		jLoading.showLoading();
+		var data = "type=DOWN&menuGroupId=" + jlst.getJLstRowInfo(idx).rec_id + "&roleId=" + roleId;
+		var url = getSvrAddress() + "updateMenuGroupOrder.action?" + data;
+		$.ajax({
+			type: "GET",
+			url:url,
+			dataType:"json",
+			success: function(data) {
+				jLoading.hideLoading();
+				if(data.isSuccess) {
+					queryEntityInfos();
+				} else {
+					alert(data.message);
+				}
+			}
+		});
+	} else {
+		alert("请选择菜单角色才能对菜单组进行排序");
+	}
+}
+function entitySelected(rtnObj) {
+	roleInput.finishValueSelect(rtnObj);
+}
+function queryRoleInfos(page, rows) {
+	var data = "page=" + page + "&rows=" + rows;
+	var url = getSvrAddress() + "queryRoleLst.action?" + data;
+	$.ajax({
+		type: "GET",
+		url:url,
+		dataType:"json",
+		success: function(data) {
+			jSelectLstDialog.finishLoadLstInfo({titles:["角色名称", "平台名称"], records:data.rtnObj
+			, keys:["name", "platform"], idKey:"rec_id", txtKey:"name"});
+		}
+    });
+}
+</script>
+</body>
+</html>
