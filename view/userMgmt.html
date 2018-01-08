@@ -1,0 +1,277 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="../css/tree_menu.css"/>
+<link rel="stylesheet" type="text/css" href="../css/main.css" />
+<link rel="stylesheet" type="text/css" href="../css/toolbar.css" />
+
+<script type="text/javascript" src="http://121.199.38.132/jquery-1.8.3.js"></script>
+<script type="text/javascript" src="../js/common.js"></script>
+<script type="text/javascript" src="../js/jpagelst-0.0.1.js"></script>
+<script type="text/javascript" src="../js/jloading-0.0.1.js"></script>
+<script type="text/javascript" src="../js/jselect.lst-0.0.1.js" charset="utf-8"></script>
+<script type="text/javascript" src="../js/jform-0.0.1.js" charset="utf-8"></script>
+<script type="text/javascript" src="../js/tree_menu.js"></script>
+</head>
+<body>
+<div id="userInfoBlock" class="title_block"></div>
+<img src="http://121.199.38.132/images/main/shadow.png" style="width:100%;height:5px;"/>
+
+<div style="margin:0 auto;width:95%;font-size:14px;">
+	<div id="treeMenu"  class="menu_tree_block"></div>
+	<div style="width:1px;background:#eeeeee;float:left;margin-top:10px;"></div>
+	
+	<div class="right_block">
+		<div id="rightTitleBlock" class="right_title_block"></div>
+		
+		<div class="tab_bar_1">
+			<label class="label_1">用户名称:</label>
+			<input type="text" id="userName4Query" name="userName4Query" class="text_input_1"></input>
+			
+			<label class="label_1">手机号:</label>
+			<input type="text" id="userTel4Query" name="userTel4Query" class="text_input_1"></input>
+			
+			<div class="button_1" onclick="queryEntityInfos()" >查询</div>
+			<div class="button_1" onclick="createSvcUser()" >添加</div>
+		</div>
+		<div id="entityInfoLst" class="table_block"></div>
+	</div>
+</div>
+<script>
+processUserInfo({level:0, treeNodeId:"userMgmt"});
+
+var jLoading = new JLoading();
+
+var jSelectLstDialog = new JSelectLstDialog({id:"jselectLst", btnTxt:"确定", btnFunction:entitySelected, isSimpleSelect:true});
+
+var tableHeight = document.body.clientHeight - 55 - 52 - 65 - 50;
+
+var lstInfo = {
+	id : "entityInfoLst",
+	titles: ["手机号", "用户名称", "邮箱", "角色信息", "状态"],
+	keys: ["user_tel", "user_name", "email", "role_info_dic", "status"],
+	functionTitles:["修改用户", "查看详情", "删除用户"],
+	functions:[updateSvcUser, showDetail, deleteSvcUser],
+	height:tableHeight,
+	loadingFunction:loadEntityInfos
+}
+var jlst = new JPageLst(lstInfo);
+
+function queryEntityInfos() {
+	var pageInfo = jlst.getPagInfo();
+	loadEntityInfos(pageInfo.page, pageInfo.rows);
+}
+function loadEntityInfos(page, rows) {
+	var data = "page=" + page + "&rows=" + rows;
+	
+	var userName = $("#userName4Query").val();
+	if(userName != "") {
+		data += "&userName=" + userName;
+	}
+	
+	var userTel = $("#userTel4Query").val();
+	if(userTel != "") {
+		data += "&userTel=" + userTel;
+	}
+	
+	var url = getSvrAddress() + "querySvcUserInfoLst.action?" + data;
+	
+	jLoading.showLoading();
+	
+	$.ajax({
+		type: "POST",
+		url:url,
+		dataType:"json",
+		success: function(data) {
+			jLoading.hideLoading();
+			if(data.isSuccess) {
+				jlst.drawJPageLst(data.rtnObj);
+			} else {
+				alert(data.message);
+			}
+		}
+    });
+}
+
+
+var formData = {
+	id:"createSvcUserId",
+	formSize:9
+}
+var jForm = new JForm(formData);
+function createSvcUser() {
+	var createFormInfo = {
+		inputLst:[{label:"用户名称", type:"text", id:"userName", isNotNull:true}
+		, {label:"用户电话", type:"text", id:"userTel", isNotNull:true}
+		, {label:"登录密码", type:"text", id:"userPwd", isNotNull:true}
+		, {label:"身份证", type:"text", id:"userCardId"}
+		, {label:"用户地址", type:"text", id:"userAddr"}
+		, {label:"电子邮件", type:"text", id:"email"}
+		, {label:"用户角色", type:"custom", id:"roleId", isNotNull:true}
+		, {label:"用户商户", type:"custom", id:"merchantId"}],
+		title : "添加用户",
+		btnTxt:"添加",
+		btnFunction:doCreateSvcUser,
+		customFunction:customFunction,
+		customDelete:customDelete
+	}
+	jForm.showForm(createFormInfo);
+}
+function customFunction(id) {
+	if(id == "merchantId") {
+		jSelectLstDialog.showSelectLst({title:"请选择用户所属商户", caller:"queryMerchant4Create", loadingInfos:queryMerchantInfos});
+		jForm.clearFormInfo("merchantId");
+	} else if(id == 'roleId') {
+		jSelectLstDialog.showSelectLst({title:"请选择用户角色", caller:"queryRole4Create", loadingInfos:queryRoleInfos});
+		jForm.clearFormInfo("roleId");
+	}
+}
+function customDelete(id) {
+	jForm.clearFormInfo(id);
+}
+function doCreateSvcUser(formInfo) {
+	var url = getSvrAddress() + "createSvcUser.action"
+	
+	$.ajax({
+		type: "POST",
+		url:url,
+		data:formInfo,
+		dataType:"json",
+		success: function(data) {
+			jForm.hideForm();
+			if(data.isSuccess) {
+				alert("新建用户成功");
+				queryEntityInfos();
+			} else {
+				alert(data.message);
+			}
+		}
+    });
+}
+
+function updateSvcUser(idx) {
+	var record = jlst.getJLstRowInfo(idx);
+	
+	var updateFormInfo = {
+		inputLst:[{label:"用户名称", type:"text", id:"userName", isNotNull:true, value: record.user_name}
+		, {type:"hidden", id:"userId", value: record.user_id}
+		, {label:"用户电话", type:"text", id:"userTel", isNotNull:true, value: record.user_tel}
+		, {label:"身份证", type:"text", id:"userCardId", value:record.user_card_id}
+		, {label:"用户地址", type:"text", id:"userAddr", value:record.user_addr}
+		, {label:"电子邮件", type:"text", id:"email", value: record.email}
+		, {label:"用户角色", type:"select", id:"roleInfo", optionLst: [{value:1, txt:"管理员"}, {value:2, txt:"业务员"}], value: record.role_info}],
+		title : "修改用户",
+		btnTxt:"修改",
+		btnFunction:doUpdateSvcUser
+	}
+	jForm.showForm(updateFormInfo);
+}
+
+function doUpdateSvcUser(formUrl) {
+	var url = getSvrAddress() + "doUpdateSvcUser.action?" + formUrl;
+	
+	$.ajax({
+		type: "POST",
+		url:url,
+		dataType:"json",
+		success: function(data) {
+			jForm.hideForm();
+			if(data.isSuccess) {
+				alert('操作成功');
+				queryEntityInfos();
+			} else {
+				alert(data.message);
+			}
+		}
+    });
+}
+
+function deleteSvcUser(idx) {
+	var record = jlst.getJLstRowInfo(idx);
+	
+	if(confirm("您确定要删除该用户么？")) {
+		var url = getSvrAddress() + "deleteSvcUser.action?";
+		url += "userId=" + record.user_id;
+		
+		jLoading.showLoading();
+		
+		$.ajax({
+			type: "POST",
+			url:url,
+			dataType:"json",
+			success: function(data) {
+				jLoading.hideLoading();
+				if(data.isSuccess) {
+					alert('操作成功');
+					queryEntityInfos();
+				} else {
+					alert(data.message);
+				}
+			}
+		});
+	}
+}
+
+function showDetail(idx) {
+	var record = jlst.getJLstRowInfo(idx);
+
+	var showFormInfo = {
+		inputLst:[{label:"用户名称", type:"view", id:"userName", value: record.user_name}
+		, {label:"用户电话", type:"view", id:"userTel", value: record.user_tel}
+		, {label:"身份证", type:"view", id:"userCardId", value:record.user_card_id}
+		, {label:"用户地址", type:"view", id:"userAddr", value:record.user_addr}
+		, {label:"电子邮件", type:"view", id:"email", value: record.email}
+		, {label:"用户角色", type:"view", id:"roleInfo", value: record.role_info}],
+		title : "查看用户"
+	}
+	jForm.showForm(showFormInfo);
+}
+
+
+
+function entitySelected(rtnObj) {
+	if(rtnObj.caller == "queryMerchant4Create") {
+		rtnObj.id = "merchantId";
+		jForm.processCustom(rtnObj);
+	} else if(rtnObj.caller == "queryRole4Create") {
+		rtnObj.id = "roleId";
+		jForm.processCustom(rtnObj);
+	}
+}
+function queryMerchantInfos(page, rows, caller) {
+	var url = getSvrAddress() + "queryMerchantInfoLst.action?";
+	url += "page=" + page + "&rows=" + rows;
+	
+	if(caller == "queryMerchant4Query") {
+		
+	} else if(caller == "queryMerchant4Create") {
+		
+	}
+	$.ajax({
+		type: "GET",
+		url:url,
+		dataType:"json",
+		success: function(data) {
+			jSelectLstDialog.finishLoadLstInfo({titles:["商户名称", "商户法人"], records:data.rtnObj
+			, keys:["cpy_name", "cpy_legal_name"], idKey:"rec_id", txtKey:"cpy_name"});
+		}
+    });
+}
+function queryRoleInfos(page, rows) {
+	var data = "page=" + page + "&rows=" + rows;
+	var url = getSvrAddress() + "queryRoleLst.action?" + data;
+	$.ajax({
+		type: "GET",
+		url:url,
+		dataType:"json",
+		success: function(data) {
+			jSelectLstDialog.finishLoadLstInfo({titles:["角色名称", "平台名称"], records:data.rtnObj
+			, keys:["name", "platform"], idKey:"rec_id", txtKey:"name"});
+		}
+    });
+}
+
+</script>
+</body>
+</html>

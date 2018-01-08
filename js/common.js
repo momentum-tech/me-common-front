@@ -130,7 +130,7 @@ function assembleRightTitle(title) {
 }
 
 function getSvrAddress() {
-	return "http://localhost:8080/";
+	return "http://121.199.38.132:8112/";
 }
 
 
