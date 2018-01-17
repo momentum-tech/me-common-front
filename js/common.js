@@ -130,7 +130,7 @@ function assembleRightTitle(title) {
 }
 
 function getSvrAddress() {
-	return "http://121.199.38.132:8112/";
+	return "http://111.231.201.90:8112/";
 }
 
 

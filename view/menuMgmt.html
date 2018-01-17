@@ -271,8 +271,8 @@ function queryMenuGroupInfos(page, rows) {
 		url:url,
 		dataType:"json",
 		success: function(data) {
-			jSelectLstDialog.finishLoadLstInfo({titles:["菜单名称", "菜单顺序"], records:data.rtnObj
-			, keys:["name", "sequence"], idKey:"rec_id", txtKey:"name"});
+			jSelectLstDialog.finishLoadLstInfo({titles:["菜单名称", "备注"], records:data.rtnObj
+			, keys:["name", "comments"], idKey:"rec_id", txtKey:"name"});
 		}
     });
 }
