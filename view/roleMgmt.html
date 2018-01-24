@@ -55,8 +55,8 @@ var selectedRoleId;
 var tableHeight = document.body.clientHeight - 55 - 52 - 65 - 50;
 var lstInfo = {
 	id : "entityInfoLst",
-	titles: ["角色名称", "平台名称"],
-	keys: ["name", "platform"],
+	titles: ["角色名称", "平台名称", "所属行业", "所属区域"],
+	keys: ["name", "platform", "industry", "area"],
 	functionTitles:["修改角色", "删除角色", "配置角色菜单"],
 	functions:[updateEntity, doDeleteEntity, editRoleMenuInfo],
 	height:tableHeight,
@@ -154,8 +154,8 @@ function createEntity() {
 	var createFormInfo = {
 		inputLst:[{label:"角色名称", type:"text", id:"name", isNotNull:true}
 				, {label:"平台名称", type:"text", id:"platform", isNotNull:true}
-				, {label:"所属区域", type:"custom", id:"areaCode", isNotNull:true}
-				, {label:"所属行业", type:"custom", id:"industryCode", isNotNull:true}],
+				, {label:"所属区域", type:"custom", id:"areaCode"}
+				, {label:"所属行业", type:"custom", id:"industryCode"}],
 		title : "添加角色",
 		btnTxt:"添加",
 		btnFunction:doCreateEntity,
@@ -165,8 +165,8 @@ function createEntity() {
 	jForm.showForm(createFormInfo);
 }
 function doCreateEntity(data) {
-	//var url = getSvrAddress() + "createRole.action";
-	var url = "http://localhost:8080/createRole.action";
+	var url = getSvrAddress() + "createRole.action";
+	
 	$.ajax({
 		type: "POST",
 		url:url,
