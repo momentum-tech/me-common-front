@@ -13,6 +13,8 @@
 <script type="text/javascript" src="../js/jform-0.0.1.js" charset="utf-8"></script>
 <script type="text/javascript" src="../js/tree_menu.js"></script>
 <script type="text/javascript" src="../js/jselect.lst-0.0.1.js" charset="utf-8"></script>
+<script type="text/javascript" src="../js/jtree.dialog.js"></script>
+<script type="text/javascript" src="../js/jtree-0.0.1.js"></script>
 </head>
 <body>
 <div id="userInfoBlock" class="title_block"></div>
@@ -41,6 +43,7 @@
 processUserInfo({level:0, treeNodeId:"roleMgmt"});
 
 var jLoading = new JLoading();
+var jTreeDailog = new JTreeDailog({id:"areaTree", btnTxt:"确定", btnFunction:areaTreeSelected, rootLabel:"云南省", rootId:"2082f9334a2c46dfb46f9c0d05525853", rootLevel:1});
 
 var formData = {
 	id:"entityForm",
@@ -149,16 +152,21 @@ function loadEntityInfos(page, rows) {
 
 function createEntity() {
 	var createFormInfo = {
-		inputLst:[{label:"角色名称", type:"text", id:"name", isNotNull:true}, {label:"平台名称", type:"text", id:"platform", isNotNull:true}],
-		title : "添加菜单",
+		inputLst:[{label:"角色名称", type:"text", id:"name", isNotNull:true}
+				, {label:"平台名称", type:"text", id:"platform", isNotNull:true}
+				, {label:"所属区域", type:"custom", id:"areaCode", isNotNull:true}
+				, {label:"所属行业", type:"custom", id:"industryCode", isNotNull:true}],
+		title : "添加角色",
 		btnTxt:"添加",
-		btnFunction:doCreateEntity
+		btnFunction:doCreateEntity,
+		customFunction:customFunction,
+		customDelete:customDelete
 	}
 	jForm.showForm(createFormInfo);
 }
 function doCreateEntity(data) {
-	var url = getSvrAddress() + "createRole.action";
-	
+	//var url = getSvrAddress() + "createRole.action";
+	var url = "http://localhost:8080/createRole.action";
 	$.ajax({
 		type: "POST",
 		url:url,
@@ -189,6 +197,7 @@ function editRoleMenuInfo(idx) {
 
 
 var jSelectLstDialog = new JSelectLstDialog({id : "role_menu_dialog", btnTxt: "选择", btnFunction:menuSelected, isSimpleSelect: false});
+var jSelectLstDialog2 = new JSelectLstDialog({id : "role_menu_dialog2", btnTxt: "选择", btnFunction:dialogSelected, isSimpleSelect: true});
 function queryRoleMenuInfos(selectedRoleId) {
 	var url = getSvrAddress() + "queryRoleMenuInfos.action?";
 	url += "recId=" + selectedRoleId;
@@ -250,9 +259,44 @@ function menuSelected(rtnObj) {
 				alert(data.message);
 			}
 		}
-    });
+	});
 }
 
+
+function customFunction(id) {
+	if(id == 'industryCode') {
+		jSelectLstDialog2.showSelectLst({title:"请选择用户所属行业类别", loadingInfos:queryIndustyInfos});
+	} else if(id == 'areaCode') {
+		showAreaTreeDailog();
+	}
+}
+function customDelete(id) {
+	jForm.clearFormInfo(id);
+}
+function queryIndustyInfos(page, rows) {
+	var data = "page=" + page + "&rows=" + rows;
+	var url = getSvrAddress() + "queryIndustryCodeLst.action?" + data;
+	$.ajax({
+		type: "GET",
+		url:url,
+		dataType:"json",
+		success: function(data) {
+			jSelectLstDialog2.finishLoadLstInfo({titles:["行业名称", "行业编码"], records:data.rtnObj
+			, keys:["industry", "industry_code"], idKey:"industry_code", txtKey:"industry"});
+		}
+    });
+}
+function dialogSelected(rtnObj) {
+	rtnObj.id = "industryCode";
+	jForm.processCustom(rtnObj);
+}
+function showAreaTreeDailog() {
+	jTreeDailog.showTreeDailog();
+}
+function areaTreeSelected(rtnObj) {
+	rtnObj.id = "areaCode";
+	jForm.processCustom(rtnObj);
+}
 </script>
 </body>
 </html>

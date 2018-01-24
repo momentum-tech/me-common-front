@@ -23,7 +23,7 @@ function JForm() {
 	formMask.style.height = totalHeight;
 	formMask.style.left = 0;
 	formMask.style.top = 0;
-	formMask.style.zIndex = 1000;
+	formMask.style.zIndex = 100;
 	formMask.style.display = "none";
 	
 	body.appendChild(formMask);
@@ -35,7 +35,7 @@ function JForm() {
 	formBlock.style.height = height + "px";
 	formBlock.style.left = left;
 	formBlock.style.top = top;
-	formBlock.style.zIndex = 1001;
+	formBlock.style.zIndex = 101;
 	formBlock.style.display = "none";
 	formBlock.id = _id;
 	
